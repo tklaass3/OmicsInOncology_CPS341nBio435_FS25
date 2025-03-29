@@ -107,7 +107,7 @@ minor info, that we will need to skip.
 ```{r file reading}
 ## The experimental setup (which tells which patient is a responder and who is not) in Sheet S1A
 ## First, we'll read it into the ExpSetup variable
-ExpSetup <- read_xlsx("CELL-179-suppl1.xlsx", sheet="S1A", na="NaN", skip = 1)
+ExpSetup <- read_xlsx("end_assignment/CELL-179-suppl1.xlsx", sheet="S1A", na="NaN", skip = 1)
 
 # Rename a few columns
 ExpSetup %<>% rename(Sample="Sample ID", Age = "Age at treatment")
@@ -120,7 +120,7 @@ ExpSetup %<>% mutate(Sample = str_replace(Sample, " ", "_"))
 
 ## Sheet S1D contains the actual quantitative data
 ## We'll read it into the PDdata variable 
-PDdata_raw <- read_xlsx("CELL-179-suppl1.xlsx", sheet="S1D", na="NaN", skip = 1)
+PDdata_raw <- read_xlsx("end_assignment/CELL-179-suppl1.xlsx", sheet="S1D", na="NaN", skip = 1)
 ```
 
 ## Inspecting the imported data
@@ -351,6 +351,7 @@ sample.
 
 ```{r}
 ## create the heatmap
+
 ```
 
 # Network analysis
