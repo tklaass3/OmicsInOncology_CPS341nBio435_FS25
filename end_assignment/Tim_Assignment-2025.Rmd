@@ -265,19 +265,18 @@ table make sense.
 # Define the proteins you want to investigate
 proteins_of_interest <- c("PSME1", "B2M", "TAPBP", "PTK7", "TAP2", "NXN", "STAT1", "LAP3", "PSMB5", "TAP1")
 
-# Loop over each protein and generate histograms
-for(protein in proteins_of_interest) {
-  # Filter data for the current protein
-  filtered_data <- PDdata %>% filter(Gene_name == protein)
-  
-  # Generate and display the histogram
-  ggplot(filtered_data, aes(x = Expression, fill = Response)) +
-    geom_histogram(binwidth = 0.5, alpha = 0.7, position = "identity") +
-    theme_minimal() +
-    labs(title = paste("Histogram of Expression for", protein), x = "Expression Level", y = "Frequency") +
-    scale_fill_manual(values = c("blue", "red")) +
-    theme(legend.title = element_blank())
-}
+# Remove invalid Expression values
+PDdata <- PDdata %>% filter(!is.na(Expression) & is.finite(Expression))
+
+# Generating the histograms
+ggplot(PDdata %>% filter(Gene_name %in% proteins_of_interest), 
+       aes(x = Expression, fill = Response)) +
+  geom_histogram(binwidth = 0.5, alpha = 0.7, position = "identity") +
+  theme_minimal() +
+  labs(title = "Histogram of Expression for Selected Proteins", x = "Expression Level", y = "Frequency") +
+  scale_fill_manual(values = c("blue", "red")) +
+  theme(legend.title = element_blank()) +
+  facet_wrap(~ Gene_name, scales = "free")
 ```
 
 ## Creating a volcano plot
@@ -352,8 +351,6 @@ sample.
 
 ```{r}
 ## create the heatmap
-
-
 ```
 
 # Network analysis
