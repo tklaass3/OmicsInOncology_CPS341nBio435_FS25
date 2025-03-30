@@ -107,7 +107,7 @@ minor info, that we will need to skip.
 ```{r file reading}
 ## The experimental setup (which tells which patient is a responder and who is not) in Sheet S1A
 ## First, we'll read it into the ExpSetup variable
-ExpSetup <- read_xlsx("end_assignment/CELL-179-suppl1.xlsx", sheet="S1A", na="NaN", skip = 1)
+ExpSetup <- read_xlsx("CELL-179-suppl1.xlsx", sheet="S1A", na="NaN", skip = 1)
 
 # Rename a few columns
 ExpSetup %<>% rename(Sample="Sample ID", Age = "Age at treatment")
@@ -120,7 +120,7 @@ ExpSetup %<>% mutate(Sample = str_replace(Sample, " ", "_"))
 
 ## Sheet S1D contains the actual quantitative data
 ## We'll read it into the PDdata variable 
-PDdata_raw <- read_xlsx("end_assignment/CELL-179-suppl1.xlsx", sheet="S1D", na="NaN", skip = 1)
+PDdata_raw <- read_xlsx("CELL-179-suppl1.xlsx", sheet="S1D", na="NaN", skip = 1)
 ```
 
 ## Inspecting the imported data
@@ -354,31 +354,6 @@ sample.
 ```{r}
 ## Create the Heatmap
 
-# Install and load pheatmap if necessary
-#install.packages("pheatmap")
-library(pheatmap)
-
-# Extract the top 10 most significant proteins
-top10_proteins <- diseased_vs_healthy$Gene_name[order(diseased_vs_healthy$p_value)][1:10]
-
-# Filter PDdata for the top 10 proteins
-heatmap_data <- PDdata[PDdata$Gene_name %in% top10_proteins, ]
-
-# Reshape the data to wide format, with samples as rows and genes as columns
-heatmap_data_wide <- reshape(heatmap_data, 
-                             idvar = "Sample", 
-                             timevar = "Gene_name", 
-                             direction = "wide")
-
-# Remove the "Sample" column and convert the rest to a matrix
-heatmap_matrix <- as.matrix(heatmap_data_wide[, -1])
-
-# Create the heatmap
-pheatmap(heatmap_matrix, 
-         scale = "column", 
-         color = colorRampPalette(c("blue", "white", "red"))(100),
-         main = "Heatmap of Top 10 Most Significant Proteins",
-         annotation_col = data.frame(Response = heatmap_data$Response[match(heatmap_data_wide$Sample, heatmap_data$Sample)]))
 ```
 
 # Network analysis
