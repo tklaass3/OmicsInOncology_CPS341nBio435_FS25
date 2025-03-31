@@ -190,9 +190,14 @@ the histogram from the Response variable. Discuss what you observe in
 this plot.
 
 ```{r create histogram of expression values}
+# Filter for PSME1 expression data
+psme1_data <- PDdata %>% filter(Gene_name == "PSME1")
 
-
-
+# Plot histogram
+ggplot(psme1_data, aes(x = Expression, fill = Response)) +
+  geom_histogram(alpha = 0.6, position = "identity", bins = 30) +
+  labs(title = "Expression of PSME1", x = "Expression Level", y = "Count") +
+  theme_minimal()
 ```
 
 # Statistical analysis
@@ -243,7 +248,7 @@ use the 'head' function to show the **10** proteins with the lowest
 p-values. As you can see PSME1 is indeed upregulated (fold_change\>0).
 
 ```{r show t_tests}
-
+head(t_tests, 10)
 ```
 
 ### Check histograms to see if the fold_change makes sense
@@ -253,7 +258,18 @@ with different fold_changes, so you can show if the values from the
 table make sense.
 
 ```{r investigate with histograms}
+genes_to_plot <- c("PSME1", "B2M", "TAPBP", "PTK7", "TAP2", "NXN", "STAT1", "LAP3", "PSMB5", "TAP1")  
 
+for (gene in genes_to_plot) {
+  p <- PDdata %>% 
+    filter(Gene_name == gene) %>%
+    ggplot(aes(x = Expression, fill = Response)) +
+    geom_histogram(alpha = 0.6, position = "identity", bins = 30) +
+    labs(title = paste("Expression of", gene), x = "Expression", y = "Count") +
+    theme_minimal()
+  
+  print(p)  # Important: print() the plot object
+}
 ```
 
 ## Creating a volcano plot
@@ -328,8 +344,7 @@ sample.
 
 ```{r}
 ## create the heatmap
-
-
+heatmap(PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name), Sample, Gene_name, Expression) %>% annotation_tile(Response)
 ```
 
 # Network analysis
@@ -351,7 +366,8 @@ with just the names of the proteins. The dplyr `pull` and `slice`
 functions can be helpful here.
 
 ```{r}
-
+# Write top 1000 gene names to .txt for STRING input
+t_tests %>% slice(1:1000) %>% pull(Gene_name) %>% write("top1000.txt")
 ```
 
 Go to the string-db.org site, and upload the top1000.txt file to the
@@ -376,7 +392,15 @@ of the degrees in the graph.
 ```{r read in the exported graph data}
 string_network <- read_delim("string_interactions.tsv", delim="\t")
 
-#proteingraph <- 
+# Create graph
+proteingraph <- graph_from_data_frame(string_network, directed = FALSE)
+
+# Simplify
+proteingraph <- simplify(proteingraph)
+
+# Histogram of degrees (connectivity)
+hist(degree(proteingraph), main = "Node Degree Distribution", xlab = "Degree")
+
 
 ```
 
@@ -398,7 +422,7 @@ clusterList, you can use the `communities` function.
 
 ```{r extract community clusters}
 
-clusters <- communities(clusterList)
+"clusters <- communities(clustersList)"
 ```
 
 We're going to focus on the 3 largest clusters. Each group is working on
