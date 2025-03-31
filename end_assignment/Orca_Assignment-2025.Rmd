@@ -131,6 +131,7 @@ Make sure the data is correct by having a look at the table
 ## You: Output ExpSetup, to check if all the steps above have worked
 
 head(ExpSetup)
+head(PDdata_raw)
 ```
 
 You need to still check if the name of your PD dataset (below it is
@@ -191,8 +192,16 @@ this plot.
 
 ```{r create histogram of expression values}
 
-
-
+PDdata_PSME1 <- filter(PDdata, Gene_name == "PSME1")
+colnames(PDdata_PSME1)
+ggplot(data = PDdata_PSME1, aes(x = Expression, fill = Response)) +
+    geom_histogram(bins = 30) +
+    labs(title = "Expression of PDME1",
+         xlab = "Expression",
+         ylab = "count",
+         fill = "Response") +
+    theme_minimal()
+#given you an idea of how a single protein expression behaves between two situations
 ```
 
 # Statistical analysis
@@ -243,7 +252,7 @@ use the 'head' function to show the **10** proteins with the lowest
 p-values. As you can see PSME1 is indeed upregulated (fold_change\>0).
 
 ```{r show t_tests}
-
+head(t_tests, 10)
 ```
 
 ### Check histograms to see if the fold_change makes sense
@@ -253,7 +262,15 @@ with different fold_changes, so you can show if the values from the
 table make sense.
 
 ```{r investigate with histograms}
-
+#for loop or write a function?
+PDdata_B2M <- filter(PDdata, Gene_name == "B2M")
+ggplot(PDdata_B2M, aes(x = Expression, fill = Response)) +
+    geom_histogram(bins = 50) +
+    labs(title = "Expression of PDME1",
+         xlab = "Expression",
+         ylab = "count",
+         fill = "Response") +
+    theme_minimal()
 ```
 
 ## Creating a volcano plot
@@ -302,9 +319,9 @@ diseased_vs_healthy %>%
              fill = significance,
              size = significance)) +
   geom_point(shape = 21) +
-  geom_hline(yintercept = -log10(0.05),
+  geom_hline(yintercept = -log10(0.05), # Threshhold of p values
              linetype = "dashed") +
-  geom_vline(xintercept = c(-0.3, 0.3),
+  geom_vline(xintercept = c(-0.3, 0.3), #Threshold of DEGs
              linetype = "dashed") +
   scale_fill_manual(values = cols) + # Modify point colour
   scale_size_manual(values = sizes) + # Modify point size
@@ -325,10 +342,30 @@ samples.
 
 Create an `annotation_tile` based on the Response for each each patient
 sample.
-
 ```{r}
-## create the heatmap
+set.seed(123) # for reproducibility
+data_matrix <- matrix(rnorm(100), nrow=10)
+rownames(data_matrix) <- paste("Gene", 1:10, sep="")
+colnames(data_matrix) <- paste("Sample", 1:10, sep="")
+pheatmap(data_matrix)
+```
 
+```{r heatmap}
+## create the heatmap using Base R heatmap()
+PDdata_heatmap <- PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name)
+summary(PDdata_heatmap)
+
+heatmap(PDdata_heatmap, Sample, Gene_name, Expression,
+        col = heat.colors(256),
+        ) %>% annotation_tile(Response)
+#heatmap(data, column_variable, row_variable, The values you want to visualize)
+#Try using pheatmap()
+```
+
+```{r Example answer}
+PDdata_1 <- PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name)
+
+heatmap(PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name), Sample, Gene_name, Expression) %>% annotation_tile(Response)
 
 ```
 
@@ -352,6 +389,20 @@ functions can be helpful here.
 
 ```{r}
 
+?write
+head(t_tests, 100)
+getwd()
+library(dplyr)
+
+top_100_significant <- t_tests %>%
+  filter(p_value <= 0.05) %>%  # Keep only rows with significant p-values
+  arrange(p_value) %>%         # Order by p_value, smallest to largest
+  slice(1:100) %>% 
+  select(Gene_name)
+write.table(top_100_significant, file = "top_100_significant_proteins_names.txt",
+row.names = FALSE, col.names = FALSE, quote = FALSE, sep = ",")
+
+
 ```
 
 Go to the string-db.org site, and upload the top1000.txt file to the
@@ -374,20 +425,38 @@ To get an idea about the connectivity of the graph, create a histogram
 of the degrees in the graph.
 
 ```{r read in the exported graph data}
-string_network <- read_delim("string_interactions.tsv", delim="\t")
+#Package:igraph
+#Q(Orca):what does degree mean (in graph theory)? What is a histogram of the degrees?
+getwd()
+string_network <- read_delim("../string_interactions_short.tsv", delim="\t")
 
-#proteingraph <- 
+proteingraph <- graph_from_data_frame(string_network)
+simplify(proteingraph)
 
+#calculate degrees of the nodes
+node_degrees <- degree(proteingraph, mode = "total")
+hist(node_degrees,
+     breaks = seq(0, max(node_degrees), by = 1),
+     xlim = c(0, 35),
+     xlab = "Degree",
+     ylab = "Frequency",
+     col = "lightgreen",
+     main = "degree distribution")
+#show the number of nodes each gene has to other genes (most has < nodes)
 ```
 
 The following code will extract the networks from your protein graph
 (given). You can also see a graphical representation of the clusters.
 
 ```{r detect clusters and plot}
-
-clusterList <- cluster_fast_greedy(proteingraph)
-
-plot(clusterList, proteingraph)
+#convert into an undirected graph first?
+undirected <- as.undirected(proteingraph)
+clusterList <- cluster_fast_greedy(undirected)
+plot(clusterList, undirected,
+     layout = layout_with_fr(undirected),
+     vertex.size = 20,
+     vertex.label.cex = 0.2,
+     vertex.label.color = "black")
 
 ```
 
@@ -399,6 +468,7 @@ clusterList, you can use the `communities` function.
 ```{r extract community clusters}
 
 clusters <- communities(clusterList)
+summary(clusters)
 ```
 
 We're going to focus on the 3 largest clusters. Each group is working on
@@ -418,6 +488,11 @@ a subset.
 -   Put these enrichment in context of cancer. Did you find hallmarks?
     Important protein complexes/functions that play a role in cancer?
     And discuss this in your presentation.
+```{r clusters}
+clusters[[1]]
+write.table(clusters[[1]], file = "proteins in cluster 1.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+```
 
 # Prepare a Presentation
 
