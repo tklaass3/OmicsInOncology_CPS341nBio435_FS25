@@ -489,9 +489,13 @@ a subset.
     Important protein complexes/functions that play a role in cancer?
     And discuss this in your presentation.
 ```{r clusters}
-clusters[[1]]
+cluster_1 <- clusters[[1]]
 write.table(clusters[[1]], file = "proteins in cluster 1.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
-
+subcluster_1 <- induced_subgraph(proteingraph, vids = cluster_1 )
+plot(subcluster_1,
+     vertex.size = 5,
+     edge_color = "grey",
+     main = "cluster 1 interactome")
 ```
 
 # Prepare a Presentation
