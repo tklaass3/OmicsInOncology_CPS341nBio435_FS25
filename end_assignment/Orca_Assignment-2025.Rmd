@@ -342,13 +342,6 @@ samples.
 
 Create an `annotation_tile` based on the Response for each each patient
 sample.
-```{r}
-set.seed(123) # for reproducibility
-data_matrix <- matrix(rnorm(100), nrow=10)
-rownames(data_matrix) <- paste("Gene", 1:10, sep="")
-colnames(data_matrix) <- paste("Sample", 1:10, sep="")
-pheatmap(data_matrix)
-```
 
 ```{r heatmap}
 ## create the heatmap using Base R heatmap()
@@ -390,16 +383,15 @@ functions can be helpful here.
 ```{r}
 
 ?write
-head(t_tests, 100)
+head(t_tests, 1000)
 getwd()
 library(dplyr)
 
-top_100_significant <- t_tests %>%
-  filter(p_value <= 0.05) %>%  # Keep only rows with significant p-values
-  arrange(p_value) %>%         # Order by p_value, smallest to largest
-  slice(1:100) %>% 
-  select(Gene_name)
-write.table(top_100_significant, file = "top_100_significant_proteins_names.txt",
+top_1000_significant <- t_tests %>%   
+  arrange(p_value) %>%         # Order by p_value, smallest to largest (not necce)
+  slice(1:1000) %>% 
+  pull(Gene_name)              # Keep only rows with significant p-values
+write.table(top_1000_significant, file = "top_1000_significant_proteins_names.txt",
 row.names = FALSE, col.names = FALSE, quote = FALSE, sep = ",")
 
 
@@ -428,9 +420,9 @@ of the degrees in the graph.
 #Package:igraph
 #Q(Orca):what does degree mean (in graph theory)? What is a histogram of the degrees?
 getwd()
-string_network <- read_delim("../string_interactions_short.tsv", delim="\t")
+string_network <- read_delim("string_interactions_short.tsv", delim="\t")
 
-proteingraph <- graph_from_data_frame(string_network)
+proteingraph <- graph_from_data_frame(string_network) #can add argument "directed = FALSE"
 simplify(proteingraph)
 
 #calculate degrees of the nodes
@@ -490,6 +482,7 @@ a subset.
     And discuss this in your presentation.
 ```{r clusters}
 cluster_1 <- clusters[[1]]
+summary(cluster_1)
 write.table(clusters[[1]], file = "proteins in cluster 1.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
 subcluster_1 <- induced_subgraph(proteingraph, vids = cluster_1 )
 plot(subcluster_1,
