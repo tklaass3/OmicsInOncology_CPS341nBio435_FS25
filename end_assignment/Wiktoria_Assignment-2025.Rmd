@@ -1,8 +1,10 @@
 ---
-title: An R Markdown document converted from "Assignment-2024.ipynb"
-output: html_document
-editor_options: 
-  markdown: 
+title: "An R Markdown document converted from \"Assignment-2024.ipynb\""
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  markdown:
     wrap: 72
 ---
 
@@ -409,10 +411,8 @@ The following code will extract the networks from your protein graph
 
 ```{r detect clusters and plot}
 
-clusterList <- cluster_fast_greedy(proteingraph)
-
-plot(clusterList, proteingraph)
-
+clusters <- cluster_fast_greedy(proteingraph)
+plot(clusters, proteingraph)
 ```
 
 ### Extract the lists from the clusters
@@ -421,8 +421,8 @@ In order to get the clusters, you will need to extract them from the
 clusterList, you can use the `communities` function.
 
 ```{r extract community clusters}
-
-"clusters <- communities(clustersList)"
+clusters <- communities(clusterList)
+str(clusters)
 ```
 
 We're going to focus on the 3 largest clusters. Each group is working on
@@ -442,6 +442,11 @@ a subset.
 -   Put these enrichment in context of cancer. Did you find hallmarks?
     Important protein complexes/functions that play a role in cancer?
     And discuss this in your presentation.
+    
+```{r extracting cluster 1}
+cluster1_proteins <- clusters[[1]]
+write(cluster1_proteins, file = "Wiktoria_cluster1_proteins.txt")
+```
 
 # Prepare a Presentation
 
