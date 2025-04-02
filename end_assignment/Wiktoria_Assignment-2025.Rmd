@@ -192,14 +192,19 @@ the histogram from the Response variable. Discuss what you observe in
 this plot.
 
 ```{r create histogram of expression values}
-# Filter for PSME1 expression data
-psme1_data <- PDdata %>% filter(Gene_name == "PSME1")
+# Filter for the protein 'PSME1'
+PSME1_data <- filter(PDdata, Gene_name == "PSME1")
 
-# Plot histogram
-ggplot(psme1_data, aes(x = Expression, fill = Response)) +
-  geom_histogram(alpha = 0.6, position = "identity", bins = 30) +
-  labs(title = "Expression of PSME1", x = "Expression Level", y = "Count") +
-  theme_minimal()
+# Plot the histogram of the expression values for PSME1, with Response as fill
+ggplot(PSME1_data, aes(x = Expression, fill = Response)) +
+  geom_histogram(binwidth = 0.5, position = "dodge", color = "black") +
+  labs(title = "Expression of PSME1 by Response",
+       x = "Expression Level",
+       y = "Frequency") +
+  theme_minimal() +
+  scale_fill_manual(values = c("NR" = "lightpink", "R" = "lightblue"))  # Custom colors for NR and R
+
+
 ```
 
 # Statistical analysis
@@ -260,18 +265,21 @@ with different fold_changes, so you can show if the values from the
 table make sense.
 
 ```{r investigate with histograms}
-genes_to_plot <- c("PSME1", "B2M", "TAPBP", "PTK7", "TAP2", "NXN", "STAT1", "LAP3", "PSMB5", "TAP1")  
+# Define the proteins you want to investigate
+proteins_of_interest <- c("PSME1", "B2M", "TAPBP", "PTK7", "TAP2", "NXN", "STAT1", "LAP3", "PSMB5", "TAP1")
 
-for (gene in genes_to_plot) {
-  p <- PDdata %>% 
-    filter(Gene_name == gene) %>%
-    ggplot(aes(x = Expression, fill = Response)) +
-    geom_histogram(alpha = 0.6, position = "identity", bins = 30) +
-    labs(title = paste("Expression of", gene), x = "Expression", y = "Count") +
-    theme_minimal()
-  
-  print(p)  # Important: print() the plot object
-}
+# Remove invalid Expression values
+PDdata <- PDdata %>% filter(!is.na(Expression) & is.finite(Expression))
+
+# Generating the histograms
+ggplot(PDdata %>% filter(Gene_name %in% proteins_of_interest), 
+       aes(x = Expression, fill = Response)) +
+  geom_histogram(binwidth = 0.5, alpha = 0.7, position = "identity") +
+  theme_minimal() +
+  labs(title = "Histogram of Expression for Selected Proteins", x = "Expression Level", y = "Frequency") +
+  scale_fill_manual(values = c("lightblue", "lightpink")) +
+  theme(legend.title = element_blank()) +
+  facet_wrap(~ Gene_name, scales = "free")
 ```
 
 ## Creating a volcano plot
@@ -346,7 +354,15 @@ sample.
 
 ```{r}
 ## create the heatmap
-heatmap(PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name), Sample, Gene_name, Expression) %>% annotation_tile(Response)
+PDdata_heatmap <- PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name)
+summary(PDdata_heatmap)
+
+heatmap(PDdata_heatmap, Sample, Gene_name, Expression,
+        col = heat.colors(256),
+        ) %>% annotation_tile(Response)
+#heatmap(data, column_variable, row_variable, The values you want to visualize)
+#Try using pheatmap()
+
 ```
 
 # Network analysis
@@ -368,8 +384,11 @@ with just the names of the proteins. The dplyr `pull` and `slice`
 functions can be helpful here.
 
 ```{r}
-# Write top 1000 gene names to .txt for STRING input
-t_tests %>% slice(1:1000) %>% pull(Gene_name) %>% write("top1000.txt")
+# Extract top 1000 most significant genes by p-value
+top1000_genes <- t_tests %>% slice(1:1000) %>% pull(Gene_name)
+
+# Save to a text file, one name per line
+write(top1000_genes, file = "top1000.txt")
 ```
 
 Go to the string-db.org site, and upload the top1000.txt file to the
@@ -392,17 +411,24 @@ To get an idea about the connectivity of the graph, create a histogram
 of the degrees in the graph.
 
 ```{r read in the exported graph data}
-string_network <- read_delim("string_interactions.tsv", delim="\t")
+string_network <- read_delim("string_interactions_short.tsv", delim="\t")
 
-# Create graph
-proteingraph <- graph_from_data_frame(string_network, directed = FALSE)
+proteingraph <- graph_from_data_frame(
+  string_network 
+)
 
-# Simplify
+# Simplify the graph (remove duplicates/self-loops)
 proteingraph <- simplify(proteingraph)
-
-# Histogram of degrees (connectivity)
-hist(degree(proteingraph), main = "Node Degree Distribution", xlab = "Degree")
-
+#calculate degrees of the nodes
+node_degrees <- degree(proteingraph, mode = "total")
+hist(node_degrees,
+     breaks = seq(0, max(node_degrees), by = 1),
+     xlim = c(0, 35),
+     xlab = "Degree",
+     ylab = "Frequency",
+     col = "lightpink",
+     main = "degree distribution")
+#show the number of nodes each gene has to other genes (most has < nodes)
 
 ```
 
@@ -411,8 +437,13 @@ The following code will extract the networks from your protein graph
 
 ```{r detect clusters and plot}
 
-clusters <- cluster_fast_greedy(proteingraph)
-plot(clusters, proteingraph)
+undirected <- as.undirected(proteingraph)
+clusterList <- cluster_fast_greedy(undirected)
+plot(clusterList, undirected,
+     layout = layout_with_fr(undirected),
+     vertex.size = 20,
+     vertex.label.cex = 0.2,
+     vertex.label.color = "black")
 ```
 
 ### Extract the lists from the clusters
@@ -422,7 +453,6 @@ clusterList, you can use the `communities` function.
 
 ```{r extract community clusters}
 clusters <- communities(clusterList)
-str(clusters)
 ```
 
 We're going to focus on the 3 largest clusters. Each group is working on
