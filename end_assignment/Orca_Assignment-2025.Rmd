@@ -190,8 +190,15 @@ the histogram from the Response variable. Discuss what you observe in
 this plot.
 
 ```{r create histogram of expression values}
-
-
+PDdata_PSME1 <- PDdata %>% filter(Gene_name == "PSME1")
+ggplot(PDdata_PSME1, aes(x = Expression, fill = Response)) +
+  geom_histogram(binwidth = 0.5, position = "dodge", color = "black") +
+  labs(title = "Expression of PSME1",
+       x = "Expression Level",
+       y = "Frequency") +
+  scale_fill_manual(values = c("NR" = "grey", "R" = "orange")) +
+  theme_minimal()
+  
 
 ```
 
@@ -243,7 +250,8 @@ use the 'head' function to show the **10** proteins with the lowest
 p-values. As you can see PSME1 is indeed upregulated (fold_change\>0).
 
 ```{r show t_tests}
-
+Top10_p <- head(t_tests, n = 10)
+Top10_list <- PDdata %>% filter(Gene_name == Top10_p$Gene_name)
 ```
 
 ### Check histograms to see if the fold_change makes sense
@@ -253,6 +261,15 @@ with different fold_changes, so you can show if the values from the
 table make sense.
 
 ```{r investigate with histograms}
+
+ggplot(Top10_list, aes(x = Expression, fill = Response)) +
+  geom_histogram(binwidth = 0.5, alpha = 0.7, position = "dodge", color = "black") +
+  labs(title = "Expression of Top10 significant genes ",
+       x = "Expression Level",
+       y = "Frequency") +
+  scale_fill_manual(values = c("NR" = "grey", "R" = "orange")) +
+  theme(legend.title = element_blank()) +
+  facet_wrap(~ Gene_name, scales = "free")
 
 ```
 
@@ -329,10 +346,12 @@ sample.
 ```{r}
 ## create the heatmap
 
-<<<<<<< HEAD
+# R based heatmap
+PDdata_heatmap <- PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name)
+
 heatmap(PDdata_heatmap, Sample, Gene_name, Expression,
         col = colorRampPalette(c("red", "white", "blue"))(100), 
-        ) %>% annotation_tile(Response
+        ) %>% annotation_tile(Response)
 #heatmap(data, column_variable, row_variable, The values you want to visualize)
 #Try using pheatmap()
 ```
@@ -341,9 +360,6 @@ heatmap(PDdata_heatmap, Sample, Gene_name, Expression,
 PDdata_1 <- PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name)
 
 heatmap(PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name), Sample, Gene_name, Expression) %>% annotation_tile(Response)
-=======
->>>>>>> a3ff095aa47009620a41ee157937e5a6fa5ab6ea
-
 ```
 
 ```{r}
@@ -377,6 +393,13 @@ functions can be helpful here.
 
 ```{r}
 
+top_1000_protein_names <- diseased_vs_healthy %>%
+  arrange(significance, descending = TRUE) %>%  # Assuming higher significance is better
+  slice(1:1000) %>%
+  pull(Gene_name)
+getwd()
+write.csv(top_1000_protein_names, file = "top 1000 protein names.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
 ```
 
 Go to the string-db.org site, and upload the top1000.txt file to the
@@ -401,8 +424,16 @@ of the degrees in the graph.
 ```{r read in the exported graph data}
 string_network <- read_delim("string_interactions.tsv", delim="\t")
 
-#proteingraph <- 
+proteingraph <- graph_from_data_frame(string_network, directed = FALSE)
 
+node_degrees <- degree(proteingraph, mode = "total")
+hist(node_degrees,
+     breaks = seq(0, max(node_degrees), by = 1),
+     xlim = c(0, 35),
+     xlab = "Degree",
+     ylab = "Frequency",
+     col = "lightpink",
+     main = "degree distribution")
 ```
 
 The following code will extract the networks from your protein graph
@@ -410,9 +441,12 @@ The following code will extract the networks from your protein graph
 
 ```{r detect clusters and plot}
 
-clusterList <- cluster_fast_greedy(proteingraph)
+clusterList <- cluster_fast_greedy(simplify(proteingraph))
 
-plot(clusterList, proteingraph)
+plot(clusterList, proteingraph,
+     vertex.size = 20,
+     vertex.label.cex = 0.2,
+     vertex.label.color = "black")
 
 ```
 
@@ -424,6 +458,7 @@ clusterList, you can use the `communities` function.
 ```{r extract community clusters}
 
 clusters <- communities(clusterList)
+summary(clusters)
 ```
 
 We're going to focus on the 3 largest clusters. Each group is working on
@@ -443,22 +478,25 @@ a subset.
 -   Put these enrichment in context of cancer. Did you find hallmarks?
     Important protein complexes/functions that play a role in cancer?
     And discuss this in your presentation.
-<<<<<<< HEAD
-```{r clusters}
+```{r cluster1 subclustering analysis}
 cluster_1 <- clusters[[1]]
 head(cluster_1)
 write.table(clusters[[1]], file = "proteins in cluster 1.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
 
-cluster1graph <- read_delim("string_interactions_short_1", delim="\t")
-proteingraph <- graph_from_data_frame(cluster1graph)
-plot(cluster1List, undirected,
-     layout = layout_with_fr(cluster1List),
+getwd()
+cluster1graph <- read_delim("string_interactions_short_1.tsv", delim="\t")
+proteingraph_cluster1 <- graph_from_data_frame(cluster1graph, directed = FALSE)
+
+plot(proteingraph_cluster1,
      vertex.size = 20,
      vertex.label.cex = 0.2,
      vertex.label.color = "black")
+
+cluster1List <- cluster_fast_greedy(simplify(proteingraph_cluster1))
+
 ```
 
-```{r}
+```{r top10 significant genes in cluster 1}
 cluster_1 <- as.vector(cluster_1)
 cluster_1
 PDdata_cluster_1 <- PDdata[PDdata$Gene_name %in% cluster_1, ]
@@ -480,20 +518,7 @@ sigofgenes <- PDdata %>% filter(Gene_name %in% head(t_tests_cluster1$Gene_name, 
 heatmap(sigofgenes, Sample, Gene_name, Expression,
         col = heat.colors(256),
         ) %>% annotation_tile(Response)
-
-
-
-
-
-library(dbplyr)
-heatmap(PDdata_cluster_1, Sample, Gene_name, Expression,
-        col = heat.colors(256),
-        ) %>% annotation_tile(Response)
-
 ```
-=======
->>>>>>> a3ff095aa47009620a41ee157937e5a6fa5ab6ea
-
 # Prepare a Presentation
 
 -   Make a powerpoint presentation of 10-15 minutes.
