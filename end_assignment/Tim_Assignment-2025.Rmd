@@ -312,7 +312,7 @@ means!
 ```{r}
 
 ## This line finds the top 50 significant names of the proteins (change this number to see more or less labels)
-sig_il_genes <- diseased_vs_healthy %>% filter(significance != "ns") %>% slice(1:10)
+sig_il_genes <- diseased_vs_healthy %>% filter(significance != "ns") %>% slice(1:50)
 
 # Let's prepare some colors and sizes that we will use in the plot
 
@@ -337,6 +337,8 @@ diseased_vs_healthy %>%
                    nudge_y = 1) +
   scale_x_continuous(limits=c(-3,3)) +
   theme_minimal()
+
+
 ```
 
 ## Create a heatmap
@@ -350,7 +352,28 @@ Create an `annotation_tile` based on the Response for each each patient
 sample.
 
 ```{r}
-## create the heatmap
+## Create the Heatmap
+heatmap(PDdata %>% filter (Gene_name %in% sig_il_genes$Gene_name), Sample, Gene_name, Expression) %>% annotation_tile(Response)
+
+# Step-by-step explanation:
+# 1.PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name)
+# o	This filters the PDdata dataset to include only the top significant genes (from sig_il_genes$Gene_name).
+# o	%in% is used to match gene names in PDdata with those in sig_il_genes.
+
+# 2.	heatmap(...)
+#   o This generates a heatmap where:
+#        Rows represent Sample (each patient/sample).
+#        Columns represent Gene_name (the 10 most significant proteins).
+#        Expression values are mapped to colors in the heatmap.
+
+# 3.annotation_tile(Response)
+#   o This adds an annotation tile to indicate patient Response (R vs NR).
+#   o This allows you to visually see if responders (R) and non-responders (NR) cluster differently based on protein expression.
+
+# What this code does in summary:
+# •	It filters the data for the most significant proteins.
+# •	It creates a heatmap of their expression levels across samples.
+# •	It adds an annotation to show which samples are R (Responders) and NR (Non-Responders).
 ```
 
 # Network analysis

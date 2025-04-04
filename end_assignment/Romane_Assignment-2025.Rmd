@@ -190,14 +190,19 @@ the histogram from the Response variable. Discuss what you observe in
 this plot.
 
 ```{r create histogram of expression values}
-# Filter for PSME1 expression data
-psme1_data <- PDdata %>% filter(Gene_name == "PSME1")
 
-# Plot histogram
-ggplot(psme1_data, aes(x = Expression, fill = Response)) +
-  geom_histogram(alpha = 0.6, position = "identity", bins = 30) +
-  labs(title = "Expression of PSME1", x = "Expression Level", y = "Count") +
-  theme_minimal()
+# filter for protein 'PSME1'
+PSME1_data <- filter(PDdata, Gene_name == "PSME1")
+
+# plot histogram with the expression values for PSME1
+ggplot(PSME1_data, aes(x = Expression, fill = Response)) +
+  geom_histogram(binwidth = 0.5, position = "dodge", color = "white") +
+  labs(title = "Expression of PSME1 by Response",
+       x = "Expression Level",
+       y = "Frequency") +
+  theme_minimal() +
+  scale_fill_manual(values = c("NR" = "purple", "R" = "violet"))  # Custom colors for NR and R
+
 ```
 
 # Statistical analysis
@@ -248,6 +253,8 @@ use the 'head' function to show the **10** proteins with the lowest
 p-values. As you can see PSME1 is indeed upregulated (fold_change\>0).
 
 ```{r show t_tests}
+
+# Show top 10 proteins based on p-value
 head(t_tests, 10)
 ```
 
@@ -258,18 +265,30 @@ with different fold_changes, so you can show if the values from the
 table make sense.
 
 ```{r investigate with histograms}
-genes_to_plot <- c("PSME1", "B2M", "TAPBP", "PTK7", "TAP2", "NXN", "STAT1", "LAP3", "PSMB5", "TAP1")  
 
-for (gene in genes_to_plot) {
-  p <- PDdata %>% 
-    filter(Gene_name == gene) %>%
-    ggplot(aes(x = Expression, fill = Response)) +
-    geom_histogram(alpha = 0.6, position = "identity", bins = 30) +
-    labs(title = paste("Expression of", gene), x = "Expression", y = "Count") +
-    theme_minimal()
-  
-  print(p)  # Important: print() the plot object
-}
+# Select more proteins for visualization
+proteins_to_plot <- c("PSME1", 
+                      t_tests$Gene_name[2], 
+                      t_tests$Gene_name[5], 
+                      t_tests$Gene_name[25], 
+                      t_tests$Gene_name[50], 
+                      t_tests$Gene_name[100])
+
+# Filter the data and plot
+PDdata %>%
+  filter(Gene_name %in% proteins_to_plot) %>%
+  ggplot(aes(x = Expression, fill = Response)) +
+  geom_histogram(position = "identity", alpha = 0.6, bins = 30) +
+  facet_wrap(~Gene_name, scales = "free_y") +
+scale_fill_manual(values = c("R" = "#4A90E2", "NR" = "#F15A60")) +
+    
+  labs(title = "Expression Histograms of Selected Proteins",
+       x = "Expression (log2)",
+       y = "Count",
+       fill = "Response") +
+  theme_minimal(base_size = 14)
+
+
 ```
 
 ## Creating a volcano plot
@@ -344,7 +363,7 @@ sample.
 
 ```{r}
 ## create the heatmap
-heatmap(PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name), Sample, Gene_name, Expression) %>% annotation_tile(Response)
+
 ```
 
 # Network analysis
@@ -366,8 +385,7 @@ with just the names of the proteins. The dplyr `pull` and `slice`
 functions can be helpful here.
 
 ```{r}
-# Write top 1000 gene names to .txt for STRING input
-t_tests %>% slice(1:1000) %>% pull(Gene_name) %>% write("top1000.txt")
+
 ```
 
 Go to the string-db.org site, and upload the top1000.txt file to the
@@ -392,15 +410,7 @@ of the degrees in the graph.
 ```{r read in the exported graph data}
 string_network <- read_delim("string_interactions.tsv", delim="\t")
 
-# Create graph
-proteingraph <- graph_from_data_frame(string_network, directed = FALSE)
-
-# Simplify
-proteingraph <- simplify(proteingraph)
-
-# Histogram of degrees (connectivity)
-hist(degree(proteingraph), main = "Node Degree Distribution", xlab = "Degree")
-
+#proteingraph <- 
 
 ```
 
@@ -422,7 +432,7 @@ clusterList, you can use the `communities` function.
 
 ```{r extract community clusters}
 
-"clusters <- communities(clustersList)"
+clusters <- communities(clusterList)
 ```
 
 We're going to focus on the 3 largest clusters. Each group is working on

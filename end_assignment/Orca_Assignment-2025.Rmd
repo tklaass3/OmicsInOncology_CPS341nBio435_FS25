@@ -349,8 +349,8 @@ PDdata_heatmap <- PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name)
 summary(PDdata_heatmap)
 
 heatmap(PDdata_heatmap, Sample, Gene_name, Expression,
-        col = heat.colors(256),
-        ) %>% annotation_tile(Response)
+        col = colorRampPalette(c("red", "white", "blue"))(100), 
+        ) %>% annotation_tile(Response
 #heatmap(data, column_variable, row_variable, The values you want to visualize)
 #Try using pheatmap()
 ```
@@ -359,6 +359,17 @@ heatmap(PDdata_heatmap, Sample, Gene_name, Expression,
 PDdata_1 <- PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name)
 
 heatmap(PDdata %>% filter(Gene_name %in% sig_il_genes$Gene_name), Sample, Gene_name, Expression) %>% annotation_tile(Response)
+
+```
+
+```{r}
+library(ComplexHeatmap)
+PDdata_heatmap_matrix <- as.matrix(PDdata_heatmap)
+response_colors <- c("R" = "blue", "NR" = "red")
+heatmap <- Heatmap(PDdata_heatmap, name = "Expression", 
+                   col = colorRampPalette(c("red", "white", "blue"))(100),
+                   top_annotation = ha)
+draw(heatmap)
 
 ```
 
@@ -482,13 +493,50 @@ a subset.
     And discuss this in your presentation.
 ```{r clusters}
 cluster_1 <- clusters[[1]]
-summary(cluster_1)
+head(cluster_1)
 write.table(clusters[[1]], file = "proteins in cluster 1.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
-subcluster_1 <- induced_subgraph(proteingraph, vids = cluster_1 )
-plot(subcluster_1,
-     vertex.size = 5,
-     edge_color = "grey",
-     main = "cluster 1 interactome")
+
+cluster1graph <- read_delim("string_interactions_short_1", delim="\t")
+proteingraph <- graph_from_data_frame(cluster1graph)
+plot(cluster1List, undirected,
+     layout = layout_with_fr(cluster1List),
+     vertex.size = 20,
+     vertex.label.cex = 0.2,
+     vertex.label.color = "black")
+```
+
+```{r}
+cluster_1 <- as.vector(cluster_1)
+cluster_1
+PDdata_cluster_1 <- PDdata[PDdata$Gene_name %in% cluster_1, ]
+t_tests_cluster1 <- PDdata_cluster_1 %>% 
+  group_by(Gene_name) %>%
+  nest() %>%
+  mutate(p_value = map_dbl(data, function(x) { return (t.test(x$Expression ~ x$Response)$p.value)})) %>%
+  mutate(fold_change = map_dbl(data, fold_change)) %>%
+  select(-data) %>%
+  arrange(p_value) %>%
+  ungroup() %>%
+  mutate(fold_change = fold_change - median(fold_change))
+
+
+write.table(head(t_tests_cluster1$Gene_name, 10), file = "top_10_genes_subcluster.txt", row.names = FALSE, col.names = FALSE, quote = FALSE, sep = ",")
+sigofgenes <- PDdata %>% filter(Gene_name %in% head(t_tests_cluster1$Gene_name, 10))
+
+
+heatmap(sigofgenes, Sample, Gene_name, Expression,
+        col = heat.colors(256),
+        ) %>% annotation_tile(Response)
+
+
+
+
+
+library(dbplyr)
+heatmap(PDdata_cluster_1, Sample, Gene_name, Expression,
+        col = heat.colors(256),
+        ) %>% annotation_tile(Response)
+
 ```
 
 # Prepare a Presentation
