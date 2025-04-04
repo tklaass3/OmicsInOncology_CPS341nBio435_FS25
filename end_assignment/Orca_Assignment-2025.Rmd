@@ -391,14 +391,15 @@ significant proteins. Use the R `write` function to create a text file
 with just the names of the proteins. The dplyr `pull` and `slice`
 functions can be helpful here.
 
-```{r}
+```{r create a list with top 1000 proteins}
 
 top_1000_protein_names <- diseased_vs_healthy %>%
   arrange(significance, descending = TRUE) %>%  # Assuming higher significance is better
   slice(1:1000) %>%
   pull(Gene_name)
 getwd()
-write.csv(top_1000_protein_names, file = "top 1000 protein names.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
+write.table(top_1000_protein_names, file = "top 1000 protein names.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
+#if using write.csv( ), a default column name ('x') would be given
 
 ```
 
@@ -518,6 +519,26 @@ sigofgenes <- PDdata %>% filter(Gene_name %in% head(t_tests_cluster1$Gene_name, 
 heatmap(sigofgenes, Sample, Gene_name, Expression,
         col = heat.colors(256),
         ) %>% annotation_tile(Response)
+```
+
+```{r subcluster analysis}
+clusters_in_cluster1<- communities(cluster1List)
+summary(clusters_in_cluster1)
+
+Subcluster_1_in_cluster1 <- clusters_in_cluster1[[1]]
+write.table(Subcluster_1_in_cluster1, file = "protein subcluster 1 in cluster 1.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+Subcluster_2_in_cluster1 <- clusters_in_cluster1[[2]]
+write.table(Subcluster_2_in_cluster1, file = "protein subcluster 2 in cluster 1.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+Subcluster_3_in_cluster1 <- clusters_in_cluster1[[3]]
+write.table(Subcluster_3_in_cluster1, file = "protein subcluster 3 in cluster 1.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+Subcluster_4_in_cluster1 <- clusters_in_cluster1[[4]]
+write.table(Subcluster_4_in_cluster1, file = "protein subcluster 4 in cluster 1.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+Subcluster_5_in_cluster1 <- clusters_in_cluster1[[5]]
+write.table(Subcluster_5_in_cluster1, file = "protein subcluster 5 in cluster 1.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
 ```
 # Prepare a Presentation
 
